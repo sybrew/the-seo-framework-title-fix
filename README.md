@@ -1,2 +1,3 @@
 # The SEO Framework - Title Fix
-Title Fix extension for The SEO Framework WordPress plugin.
+
+> A free extension for The SEO Framework plugin by Sybre Waaijer. [Get it from WordPress.org](https://wordpress.org/plugins/the-seo-framework-title-fix/).
