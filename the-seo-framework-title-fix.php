@@ -2,16 +2,16 @@
 /**
  * Plugin Name: The SEO Framework - Title Fix
  * Plugin URI: https://wordpress.org/plugins/the-seo-framework-title-fix/
- * Description: This plugin allows you to add a generator-the-seo-framework to your website through a new metabox.
- * Version: 1.0.1
+ * Description: The Title Fix extension for The SEO Framework makes sure your title output is as configured. Even if your theme is doing it wrong.
+ * Version: 1.0.1.2
  * Author: Sybre Waaijer
  * Author URI: https://cyberwire.nl/
- * License: GPLv3 or later
+ * License: GPLv3
  */
 
 /**
  * Title Fix extension plugin for The SEO Framework
- * Copyright (C) 2016 - 2016 Sybre Waaijer, CyberWire (https://cyberwire.nl/)
+ * Copyright (C) 2016 Sybre Waaijer, CyberWire (https://cyberwire.nl/)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as published
@@ -101,7 +101,7 @@ final class The_SEO_Framework_Title_Fix {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @var bool Wether title has been found and replaced already.
+	 * @var bool Whether title has been found and replaced already.
 	 */
 	protected $title_found_and_flushed = false;
 
@@ -112,45 +112,9 @@ final class The_SEO_Framework_Title_Fix {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @var bool Wether ob has started.
+	 * @var bool Whether ob has started.
 	 */
 	protected $ob_started = false;
-
-	/**
-	 * Plugin UNIX Timer Start.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var float The plugin timing.
-	 */
-	protected $timer_start;
-
-	/**
-	 * Count the timers for a summed plugin time.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var float The summed plugin time.
-	 */
-	protected $plugin_time;
-
-	/**
-	 * Initialize memory usage count.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var int The memory usage of this plugin in bytes.
-	 */
-	protected $memory_start;
-
-	/**
-	 * Trace memory usage.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var int The memory usage of this plugin in bytes.
-	 */
-	protected $memory_usage;
 
 	/**
 	 * The constructor, initialize plugin.
@@ -175,15 +139,6 @@ final class The_SEO_Framework_Title_Fix {
 		 */
 		if ( false === is_admin() ) {
 
-			//* Initialize timers.
-			$this->plugin_time = 0;
-			$this->memory_usage = 0;
-			$this->timer_start = microtime( true );
-			$this->memory_start = memory_get_usage();
-
-			//* Start the first timing.
-			$this->profile();
-
 			//* Initialize Framework class.
 			$this->the_seo_framework = the_seo_framework();
 			$the_seo_framework = $this->the_seo_framework;
@@ -200,11 +155,11 @@ final class The_SEO_Framework_Title_Fix {
 			 * Only do something if the theme is doing it wrong. Or when the filter has been applied.
 			 * Requires initial load after theme switch.
 			 */
-			if ( true === $this->force_title_fix || false === $the_seo_framework->theme_title_doing_it_right() ) {
+			if ( $this->force_title_fix || false === $the_seo_framework->theme_title_doing_it_right() ) {
 
 				/**
 				 * First run.
-				 * Start at HTML header.
+				 * Start at HTTP header.
 				 * Stop right at where wp_head is run.
 				 */
 				add_action( 'get_header', array( $this, 'start_ob' ), 0 );
@@ -215,7 +170,7 @@ final class The_SEO_Framework_Title_Fix {
 				 * Second run. Capture WP head.
 				 * 		{add_action( 'wp_head', 'wp_title' );.. who knows?}
 				 * Start at where wp_head is run (last run left off).
-				 * Stop right at where the posts start, if applicable.
+				 * Stop right at the end of wp_head.
 				 */
 				add_action( 'wp_head', array( $this, 'maybe_start_ob' ), 0 );
 				add_action( 'wp_head', array( $this, 'maybe_rewrite_title' ), 9999 );
@@ -237,8 +192,6 @@ final class The_SEO_Framework_Title_Fix {
 				 */
 				add_action( 'shutdown', array( $this, 'stop_ob' ), 0 );
 			}
-
-			$this->profile();
 		}
 
 	}
@@ -251,12 +204,8 @@ final class The_SEO_Framework_Title_Fix {
 	public function start_ob() {
 
 		if ( false === $this->ob_started ) {
-			$this->profile();
-
 			ob_start();
 			$this->ob_started = true;
-
-			$this->profile();
 		}
 
 	}
@@ -268,13 +217,9 @@ final class The_SEO_Framework_Title_Fix {
 	 */
 	public function stop_ob() {
 
-		if ( true === $this->ob_started ) {
-			$this->profile();
-
+		if ( $this->ob_started ) {
 			ob_end_clean();
 			$this->ob_started = false;
-
-			$this->profile();
 		}
 
 	}
@@ -288,11 +233,7 @@ final class The_SEO_Framework_Title_Fix {
 
 		//* Reset the output buffer if not found.
 		if ( false === $this->ob_started && false === $this->title_found_and_flushed ) {
-			$this->profile();
-
 			$this->start_ob();
-
-			$this->profile();
 		}
 
 	}
@@ -305,12 +246,8 @@ final class The_SEO_Framework_Title_Fix {
 	public function maybe_stop_ob() {
 
 		//* Let's not buffer all the way down.
-		if ( true === $this->ob_started && true === $this->title_found_and_flushed ) {
-			$this->profile();
-
+		if ( $this->ob_started && $this->title_found_and_flushed ) {
 			$this->stop_ob();
-
-			$this->profile();
 		}
 
 	}
@@ -322,15 +259,11 @@ final class The_SEO_Framework_Title_Fix {
 	 */
 	public function maybe_rewrite_title() {
 
-		if ( true === $this->ob_started && false === $this->title_found_and_flushed ) {
-			$this->profile();
-
+		if ( $this->ob_started && false === $this->title_found_and_flushed ) {
 			$content = ob_get_clean();
 			$this->ob_started = false;
 
 			$this->find_title_tag( $content );
-
-			$this->profile();
 		}
 
 	}
@@ -346,8 +279,7 @@ final class The_SEO_Framework_Title_Fix {
 	 * @since 1.0.0
 	 */
 	public function find_title_tag( $content ) {
-		$this->profile();
-
+		
 		//* Check if we can use preg_match.
 		if ( _wp_can_use_pcre_u() ) {
 			//* Let's use regex.
@@ -377,8 +309,7 @@ final class The_SEO_Framework_Title_Fix {
 				}
 			}
 		}
-
-		$this->profile();
+		
 	}
 
 	/**
@@ -392,8 +323,7 @@ final class The_SEO_Framework_Title_Fix {
 	 * @return string the content with replaced title tag.
 	 */
 	public function replace_title_tag( $title_tag, $content ) {
-		$this->profile();
-
+		
 		$the_seo_framework = $this->the_seo_framework;
 
 		$new_title = '<title>' . $the_seo_framework->title_from_cache( '', '' , '', true ) . '</title>' . $this->indicator();
@@ -403,8 +333,7 @@ final class The_SEO_Framework_Title_Fix {
 		$content = str_replace( $title_tag, $new_title, $content, $count );
 
 		echo $content;
-
-		$this->profile();
+		
 	}
 
 	/**
@@ -425,11 +354,8 @@ final class The_SEO_Framework_Title_Fix {
 			return $supports;
 
 		global $_wp_theme_features;
-
-		if ( ! isset( $_wp_theme_features['title-tag'] ) )
-			return $supports = false;
-
-		if ( true === $_wp_theme_features['title-tag'] )
+		
+		if ( isset( $_wp_theme_features['title-tag'] ) && $_wp_theme_features['title-tag'] )
 			return $supports = true;
 
 		return $supports = false;
@@ -446,67 +372,10 @@ final class The_SEO_Framework_Title_Fix {
 
 		$indicator = (bool) apply_filters( 'the_seo_framework_title_fixed_indicator', true );
 
-		if ( true === $indicator )
+		if ( $indicator )
 			return '<!-- fixed -->';
 
 		return '';
-	}
-
-	/**
-	 * Count the timings and memory usage. Dev only.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param bool $echo Wether to echo the total plugin time.
-	 * @param bool $from_last Wether to echo the differences from the last timing.
-	 *
-	 * @staticvar bool $debug
-	 *
-	 * @return float The timer in seconds.
-	 */
-	public function profile( $echo = false, $from_last = false ) {
-
-		static $debug = null;
-
-		if ( false === isset( $debug ) )
-			$debug = defined( 'THE_SEO_FRAMEWORK_DEBUG' ) && THE_SEO_FRAMEWORK_DEBUG ? true : false;
-
-		if ( true === $debug ) {
-
-			//* Get now.
-			$time_now = microtime( true );
-			$memory_usage_now = memory_get_usage();
-
-			//* Calculate difference.
-			$difference = $time_now - $this->timer_start;
-			$difference_memory = $memory_usage_now - $this->memory_start;
-
-			//* Add difference to total.
-			$this->plugin_time = $this->plugin_time + $difference;
-			$this->pugin_memory = $this->memory_usage + $difference;
-
-			//* Reset timer and memory
-			$this->timer_start = $time_now;
-			$this->memory_start = $memory_usage_now;
-
-			if ( false === $from_last ) {
-				//* Return early if not allowed to echo.
-				if ( false === $echo )
-					return $this->plugin_time;
-
-				//* Convert to string and echo if not returned yet.
-				echo (string) "\r\n" . $this->plugin_time . "s\r\n";
-				echo (string) ( $this->memory_usage / 1024 ) . "kiB\r\n";
-			} else {
-				//* Return early if not allowed to echo.
-				if ( false === $echo )
-					return $difference;
-
-				//* Convert to string and echo if not returned yet.
-				echo (string) "\r\n" . $difference . "s\r\n";
-				echo (string) ( $difference_memory / 1024 ) . "kiB\r\n";
-			}
-		}
 	}
 
 }

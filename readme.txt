@@ -4,7 +4,7 @@ Donate link: http://theseoframework.com/
 Tags: the, seo, framework, title, fix, rewrite, theme, doing, it, wrong, right, multisite, automated, auto, automatic
 Requires at least: 3.6.0
 Tested up to: 4.5.0
-Stable tag: 1.0.1
+Stable tag: 1.0.1.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -88,6 +88,19 @@ And 0.0002 seconds if your theme has the required title-tag support!
 Absolutely!
 
 == Changelog ==
+
+= 1.0.1.2 - The Fease =
+
+**For developers**
+
+* Removed: Performance profiling, to save performance.
+* Cleaned up code.
+
+= 1.0.1.1 - The Frame =
+
+**For everyone:**
+
+* Fixed: Plugin description within the plugin activation page.
 
 = 1.0.1 - The False =
 
