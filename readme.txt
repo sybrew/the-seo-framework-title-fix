@@ -2,8 +2,8 @@
 Contributors: Cybr
 Donate link: http://theseoframework.com/
 Tags: the, seo, framework, title, fix, rewrite, theme, doing, it, wrong, right, multisite, automated, auto, automatic
-Requires at least: 3.6.0
-Tested up to: 4.5.0
+Requires at least: 3.9.0
+Tested up to: 4.6.0
 Stable tag: 1.0.1.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -12,7 +12,7 @@ The Title Fix extension for The SEO Framework makes sure your title output is as
 
 == Description ==
 
-***The SEO Framework relies on the required Title Tag support within the theme files. Not all themes do it right, this can cause issues.***
+***The SEO Framework relies on the required Title Tag support within the theme files. This can cause issues because not all themes do it right.***
 
 This free extension plugin fixes those issues by replacing the title tag within the output buffer prior to outputting your website's content.
 
@@ -23,7 +23,7 @@ There are no options, only (super fast) detection. Activate and go!
 > If the title is detected to be output wrong, this plugin fixes it.
 > If you wish to have a more forceful override, then a filter is available. See Other Notes.
 >
-> This plugin is fundamentally built to perform and to keep its memory usage low.
+> This plugin is fundamentally built to perform fast and to keep its memory usage low.
 
 = About The SEO Framework =
 
@@ -35,7 +35,7 @@ Get it here: [The SEO Framework plugin from WordPress.org](https://wordpress.org
 
 **WordPress and plugins:**
 
-* This plugin requires WordPress 3.6.0 and up.
+* This plugin requires WordPress 3.9.0 and up.
 * This plugin requires **The SEO Framework 2.5.2 and up**.
 * This plugin requires **The SEO Framework 2.6.0 and up** to add back removed features (caused by title incompatibility).
 * This plugin works on multisite.
@@ -89,11 +89,30 @@ Absolutely!
 
 == Changelog ==
 
+= 1.0.2 - The Force =
+
+**For everyone:**
+
+* Fixed: The title will now always be fixed when the theme is likely to do it wrong when The SEO Framework 2.6.6.2 or lower is installed.
+	* This changes back to default behavior when The SEO Framework 2.7.0 or later is installed.
+	* This is because when (once in three days) the detection transient could be wrong when a correct title is being output in specific cases.
+* Fixed: When no title tag can be found (although unlikely), the content will no longer be destroyed.
+* Fixed: The title tag can now be found on multiple lines when using Regular Expressions (default behavior).
+	* This always worked correctly on alternative behavior (legacy PHP find and replace).
+* Changed: Plugin minimum WordPress requirement is bumped up to 3.9.0, in par with The SEO Framework's (actual) requirement.
+
+**For developers:**
+
+* Improved: The SEO Framework's main class object is no longer cached within this plugin's class memory, this saves more than 11 times its memory allocation.
+* Improved: Version comparison PHP functions have improved by about tenfold in performance (microseconds).
+* Changed: filter `the_seo_framework_force_title_fix` now defaults to whether there's no presence of The SEO Framework 2.7.0.
+	* Explained: This means that if the installed The SEO Framework version is at or above 2.7.0, the filter default to `false`; otherwise to `true`.
+
 = 1.0.1.2 - The Fease =
 
-**For developers**
+**For developers:**
 
-* Removed: Performance profiling, to save performance.
+* Removed: Performance profiling, to improve performance.
 * Cleaned up code.
 
 = 1.0.1.1 - The Frame =

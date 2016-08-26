@@ -30,7 +30,7 @@
 define( 'THE_SEO_FRAMEWORK_TITLE_FIX', true );
 
 //* Define version, for future things.
-define( 'THE_SEO_FRAMEWORK_TITLE_FIX_VERSION', '1.0.1' );
+define( 'THE_SEO_FRAMEWORK_TITLE_FIX_VERSION', '1.0.2' );
 
 add_action( 'plugins_loaded', 'the_seo_framework_title_fix_init' );
 /**
@@ -58,7 +58,7 @@ function the_seo_framework_title_fix_init() {
 		 *
 		 * @since 1.0.0
 		 */
-		if ( isset( $theseoframework_version ) && version_compare( $theseoframework_version, '2.5.2' , '>=' ) ) {
+		if ( isset( $theseoframework_version ) && version_compare( $theseoframework_version, '2.5.1.99' , '>' ) ) {
 			//* Initialize class.
 			new The_SEO_Framework_Title_Fix();
 
@@ -77,15 +77,6 @@ function the_seo_framework_title_fix_init() {
  * @final Please don't extend this extension.
  */
 final class The_SEO_Framework_Title_Fix {
-
-	/**
-	 * The SEO Framework class object.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var object The SEO Framework class object.
-	 */
-	protected $the_seo_framework;
 
 	/**
 	 * Force the fix when no title-tag is present.
@@ -139,23 +130,20 @@ final class The_SEO_Framework_Title_Fix {
 		 */
 		if ( false === is_admin() ) {
 
-			//* Initialize Framework class.
-			$this->the_seo_framework = the_seo_framework();
-			$the_seo_framework = $this->the_seo_framework;
-
-			/**
-			 * Applies filters 'the_seo_framework_force_title_fix' : Boolean
-			 * Forces the title fix.
-			 * Only if the theme doesn't support title-tag.
-			 */
-			if ( false === $this->current_theme_supports_title_tag() )
-				$this->force_title_fix = (bool) apply_filters( 'the_seo_framework_force_title_fix', false );
+			if ( false === $this->current_theme_supports_title_tag() ) {
+				/**
+				 * Applies filters 'the_seo_framework_force_title_fix'
+				 * @since 1.0.1
+				 * @param bool Whether to force the title fixing.
+				 */
+				$this->force_title_fix = (bool) apply_filters( 'the_seo_framework_force_title_fix', version_compare( the_seo_framework_version(), '2.6.99' , '<' ) );
+			}
 
 			/**
 			 * Only do something if the theme is doing it wrong. Or when the filter has been applied.
 			 * Requires initial load after theme switch.
 			 */
-			if ( $this->force_title_fix || false === $the_seo_framework->theme_title_doing_it_right() ) {
+			if ( $this->force_title_fix || false === the_seo_framework()->theme_title_doing_it_right() ) {
 
 				/**
 				 * First run.
@@ -257,7 +245,9 @@ final class The_SEO_Framework_Title_Fix {
 	 *
 	 * @since 1.0.0
 	 */
-	public function maybe_rewrite_title() {
+	public function maybe_rewrite_title( $content ) {
+
+		$this->find_title_tag( $content );
 
 		if ( $this->ob_started && false === $this->title_found_and_flushed ) {
 			$content = ob_get_clean();
@@ -269,26 +259,30 @@ final class The_SEO_Framework_Title_Fix {
 	}
 
 	/**
-	 * Find the title tag and replace it if found.
+	 * Finds the title tag and replaces it if found; will echo content from buffer otherwise.
 	 *
 	 * @uses _wp_can_use_pcre_u() WP Core function
 	 *		(Compat for lower than WP 4.1.0 provided within The SEO Framework)
 	 *
-	 * @param string $content The content with possible title tag.
-	 *
 	 * @since 1.0.0
+	 * @since 1.0.2: Echos $content, always.
+	 *
+	 * @param string $content The content with possible title tag.
+	 * @return void When title is found.
 	 */
 	public function find_title_tag( $content ) {
-		
+
 		//* Check if we can use preg_match.
 		if ( _wp_can_use_pcre_u() ) {
+
 			//* Let's use regex.
-			if ( 1 === preg_match( '/<title.*?<\/title>/i', $content, $matches ) ) {
+			if ( 1 === preg_match( '/<title.*?<\/title>/is', $content, $matches ) ) {
 				$title_tag = isset( $matches[0] ) ? $matches[0] : null;
 
 				if ( isset( $title_tag ) ) {
 					$this->replace_title_tag( $title_tag, $content );
 					$this->title_found_and_flushed = true;
+					return;
 				}
 			}
 		} else {
@@ -305,46 +299,47 @@ final class The_SEO_Framework_Title_Fix {
 					if ( false !== $title_tag ) {
 						$this->replace_title_tag( $title_tag, $content );
 						$this->title_found_and_flushed = true;
+						return;
 					}
 				}
 			}
 		}
-		
+
+		//* Can't be escaped, as content is unknown.
+		echo $content;
+
 	}
 
 	/**
-	 * Replace the title tag.
+	 * Replaces the title tag.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $title_tag the Title tag with the title
 	 * @param string $content The content containing the $title_tag
-	 *
 	 * @return string the content with replaced title tag.
 	 */
 	public function replace_title_tag( $title_tag, $content ) {
-		
-		$the_seo_framework = $this->the_seo_framework;
 
-		$new_title = '<title>' . $the_seo_framework->title_from_cache( '', '' , '', true ) . '</title>' . $this->indicator();
+		$new_title = '<title>' . the_seo_framework()->title_from_cache( '', '' , '', true ) . '</title>' . $this->indicator();
 		$count = 1;
 
 		//* Replace the title tag within the header.
 		$content = str_replace( $title_tag, $new_title, $content, $count );
 
+		//* Can't be escaped, as content is unknown.
 		echo $content;
-		
+
 	}
 
 	/**
 	 * Checks a theme's support for title-tag.
 	 *
 	 * @since 1.0.0
+	 * @global array $_wp_theme_features
 	 * @staticvar bool $supports
 	 *
-	 * @global array $_wp_theme_features
-	 *
-	 * @return bool
+	 * @return bool True if the theme supports the title tag, false otherwise.
 	 */
 	public function current_theme_supports_title_tag() {
 
@@ -354,8 +349,8 @@ final class The_SEO_Framework_Title_Fix {
 			return $supports;
 
 		global $_wp_theme_features;
-		
-		if ( isset( $_wp_theme_features['title-tag'] ) && $_wp_theme_features['title-tag'] )
+
+		if ( false === empty( $_wp_theme_features['title-tag'] ) )
 			return $supports = true;
 
 		return $supports = false;
@@ -364,12 +359,17 @@ final class The_SEO_Framework_Title_Fix {
 	/**
 	 * Returns a small indicator.
 	 *
-	 * Applies filters 'the_seo_framework_title_fixed_indicator' : Whether to output an indicator or not.
-	 *
 	 * @since 1.0.1
+	 *
+	 * @return string
 	 */
 	public function indicator() {
 
+		/**
+		 * Applies filters 'the_seo_framework_title_fixed_indicator'
+		 * @since 1.0.1
+		 * @param bool Whether to output an indicator or not.
+		 */
 		$indicator = (bool) apply_filters( 'the_seo_framework_title_fixed_indicator', true );
 
 		if ( $indicator )
@@ -377,5 +377,4 @@ final class The_SEO_Framework_Title_Fix {
 
 		return '';
 	}
-
 }
